@@ -17,6 +17,7 @@ function WebRecorder() {
   const [isBodyVisible, setIsBodyVisible] = useState(false);
   const [poseNetModel, setPoseNetModel] = useState(null);
   const [isLightingOptimal, setIsLightingOptimal] = useState(false);
+  const [cameraFacingMode, setCameraFacingMode] = useState('user'); // 'user' for front camera, 'environment' for back camera
 
   // Load PoseNet model
   useEffect(() => {
@@ -46,7 +47,7 @@ function WebRecorder() {
 
       const bodyVisible = criticalKeypoints.every(point => {
         const keypoint = keypoints.find(kp => kp.part === point);
-        return keypoint && keypoint.score > 0.5;
+        return keypoint && keypoint.score > 0.6;
       });
 
       setIsBodyVisible(bodyVisible);
@@ -114,7 +115,7 @@ function WebRecorder() {
     console.log(`Lux Value: ${LightingCondition}`);
 
     // Check if Lux value is within the desired range (4000 to 6000 Lux)
-    const withinRange =LightingCondition>= 400 && LightingCondition <= 650;
+    const withinRange =LightingCondition>= 300 && LightingCondition <= 700;
     setIsLightingOptimal(withinRange);
 
     if (!withinRange && recording) {
@@ -123,12 +124,20 @@ function WebRecorder() {
     }
   };
 
+  // Toggle between front and back camera
+  const toggleCamera = () => {
+    setCameraFacingMode((prevMode) => (prevMode === 'user' ? 'environment' : 'user'));
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.webcamContainer}>
         <Webcam
           audio={true}
           ref={webcamRef}
+          videoConstraints={{
+            facingMode: cameraFacingMode, // Switch between 'user' and 'environment' for front/back cameras
+          }}
           style={{
             filter: isBlurred ? 'blur(10px)' : 'none',
             width: '100%',
@@ -153,6 +162,10 @@ function WebRecorder() {
         {videoChunks.length > 0 && (
           <button onClick={handleSaveVideo}>Save Video</button>
         )}
+        {/* Button to toggle between front and back camera */}
+        <button onClick={toggleCamera}>
+          Switch Camera
+        </button>
       </div>
     </div>
   );
