@@ -1,56 +1,61 @@
-// src/components/GreenBox.js
-import React, { useEffect, useRef } from 'react';
+// import React, { useEffect, useRef } from 'react';
 
-function GreenBox({ keypoints, videoWidth, videoHeight }) {
-  const canvasRef = useRef(null);
+// function GreenBox({ keypoints, videoWidth, videoHeight, stopRecording }) {
+//   const canvasRef = useRef(null);
 
-  useEffect(() => {
-    if (keypoints && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
+//   useEffect(() => {
+//     const drawBoundingBox = () => {
+//       const canvas = canvasRef.current;
+//       const ctx = canvas.getContext('2d');
+//       canvas.width = videoWidth;
+//       canvas.height = videoHeight;
+      
+//       // Clear the canvas
+//       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      if (ctx && videoWidth && videoHeight) {
-        // Clear the canvas before drawing
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+//       // Check if the required keypoints exist
+//       const leftShoulder = keypoints.find((kp) => kp.part === 'leftShoulder');
+//       const leftHip = keypoints.find((kp) => kp.part === 'leftHip');
 
-        // Set canvas size to match video dimensions
-        canvas.width = videoWidth;
-        canvas.height = videoHeight;
+//       if (leftShoulder && leftHip) {
+//         // Calculate the distance between leftShoulder and leftHip
+//         const distance = Math.sqrt(
+//           Math.pow(leftHip.position.x - leftShoulder.position.x, 2) +
+//           Math.pow(leftHip.position.y - leftShoulder.position.y, 2)
+//         );
 
-        // Draw green box around the keypoints
-        keypoints.forEach(point => {
-          if (point.score > 0.5) {
-            ctx.beginPath();
-            ctx.arc(point.position.x, point.position.y, 5, 0, 2 * Math.PI);
-            ctx.fillStyle = 'red';
-            ctx.fill();
-          }
-        });
+//         // Define the bounding box based on 3x the distance
+//         const offsetX = distance * 3;
+//         const offsetY = distance * 3;
+//         const box = {
+//           x1: leftShoulder.position.x - offsetX,
+//           y1: leftShoulder.position.y - offsetY,
+//           x2: leftShoulder.position.x + offsetX,
+//           y2: leftShoulder.position.y + offsetY,
+//         };
 
-        // Draw green box based on keypoint positions (e.g., body bounding box)
-        if (keypoints.length >= 2) {
-          const leftShoulder = keypoints.find(kp => kp.part === 'leftShoulder');
-          const rightShoulder = keypoints.find(kp => kp.part === 'rightShoulder');
-          const leftHip = keypoints.find(kp => kp.part === 'leftHip');
-          const rightHip = keypoints.find(kp => kp.part === 'rightHip');
+//         // Check if the box is within frame bounds
+//         const isInFrame =
+//           box.x1 >= 0 && box.y1 >= 0 &&
+//           box.x2 <= videoWidth && box.y2 <= videoHeight;
 
-          if (leftShoulder && rightShoulder && leftHip && rightHip) {
-            const minX = Math.min(leftShoulder.position.x, rightShoulder.position.x, leftHip.position.x, rightHip.position.x);
-            const minY = Math.min(leftShoulder.position.y, rightShoulder.position.y, leftHip.position.y, rightHip.position.y);
-            const maxX = Math.max(leftShoulder.position.x, rightShoulder.position.x, leftHip.position.x, rightHip.position.x);
-            const maxY = Math.max(leftShoulder.position.y, rightShoulder.position.y, leftHip.position.y, rightHip.position.y);
+//         if (!isInFrame) {
+//           stopRecording('Out of bounds: The bounding box is out of the video frame.');
+//         }
 
-            // Draw a green bounding box around the body
-            ctx.strokeStyle = 'green';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
-          }
-        }
-      }
-    }
-  }, [keypoints, videoWidth, videoHeight]);
+//         // Draw the bounding box
+//         ctx.beginPath();
+//         ctx.rect(box.x1, box.y1, box.x2 - box.x1, box.y2 - box.y1);
+//         ctx.lineWidth = 2;
+//         ctx.strokeStyle = 'green';
+//         ctx.stroke();
+//       }
+//     };
 
-  return <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, zIndex: 10 }} />;
-}
+//     drawBoundingBox();
+//   }, [keypoints, videoWidth, videoHeight, stopRecording]);
 
-export default GreenBox;
+//   return <canvas ref={canvasRef} style={{ position: 'absolute' }} />;
+// }
+
+// export default GreenBox;

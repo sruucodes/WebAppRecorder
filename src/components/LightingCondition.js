@@ -1,4 +1,3 @@
-// LightingCondition.js
 import React, { useEffect, useState } from 'react';
 
 function LightingCondition({ videoRef, onLightingChange }) {
@@ -20,9 +19,8 @@ function LightingCondition({ videoRef, onLightingChange }) {
 
   const calculateLux = (brightness) => {
     const normalizedBrightness = brightness / 255;
-const luxFactor = 1000;
-return normalizedBrightness * luxFactor;
-
+    const luxFactor = 1000;
+    return normalizedBrightness * luxFactor;
   };
 
   const updateLux = () => {
@@ -42,7 +40,7 @@ return normalizedBrightness * luxFactor;
         const calculatedLux = calculateLux(brightness);
         
         setLux(calculatedLux);
-        onLightingChange(calculatedLux);
+        onLightingChange(calculatedLux);  // Callback to pass the lux value to parent component
       }
     }
   };
@@ -52,10 +50,10 @@ return normalizedBrightness * luxFactor;
     return () => clearInterval(intervalId);
   }, []);
 
-  return (
-    <div>Current Lux: {lux.toFixed(2)}</div>
-  );
+  return null; // No need to return anything in the component since the value is passed to parent
 }
 
-export default LightingCondition;
+// Named export for getLuxValue if you need to use it externally
+export const getLuxValue = (lux) => lux;
 
+export default LightingCondition;

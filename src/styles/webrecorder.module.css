@@ -10,7 +10,15 @@
     height: 100vh;  */
     background-color: #000; /* Optional, just to make it clear when the camera feed is off */
   }
+  .videoPreview {
+    margin-top: 20px;
+    text-align: center;
+  }
   
+  video {
+    border: 2px solid #000;
+    border-radius: 8px;
+  }
   .overlayMessage {
     position: absolute;
     top: 0;

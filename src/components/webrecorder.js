@@ -5,6 +5,7 @@ import * as tf from '@tensorflow/tfjs';
 import * as posenet from '@tensorflow-models/posenet';
 import styles from '../styles/webrecorder.module.css';
 import LightingCondition from './LightingCondition.js';
+import SkeletonTracker from './skeletonTracker.js'; // Import SkeletonTracker
 
 // WebRecorder Component
 function WebRecorder() {
@@ -115,7 +116,7 @@ function WebRecorder() {
     console.log(`Lux Value: ${LightingCondition}`);
 
     // Check if Lux value is within the desired range (4000 to 6000 Lux)
-    const withinRange =LightingCondition>= 300 && LightingCondition <= 700;
+    const withinRange = LightingCondition >= 300 && LightingCondition <= 700;
     setIsLightingOptimal(withinRange);
 
     if (!withinRange && recording) {
@@ -147,10 +148,13 @@ function WebRecorder() {
         <div className={styles.overlayMessage}>{message}</div>
       </div>
 
-      <LightingCondition 
+      {/* Skeleton Tracker */}
+      <SkeletonTracker videoRef={webcamRef} poseNetModel={poseNetModel} />
+
+      {/* <LightingCondition 
         videoRef={webcamRef} 
         onLightingChange={handleLightingChange} // Pass handleLightingChange to LightingCondition
-      />
+      /> */}
 
       <div className={styles.buttons}>
         <button onClick={handleStartRecording} disabled={recording || !isBodyVisible || !isLightingOptimal}>
