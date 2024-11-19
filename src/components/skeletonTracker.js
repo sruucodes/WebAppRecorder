@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from "react";
 import { Pose } from "@mediapipe/pose";
 import * as cam from "@mediapipe/camera_utils";
 import { getLuxValue } from './LightingCondition.js'; // Ensure this is the correct path
+import styles from '../styles/skeletontracker.module.css';
 
 const SkeletonTracker = () => {
   const videoRef = useRef(null);
@@ -15,26 +16,50 @@ const SkeletonTracker = () => {
   const [currentCamera, setCurrentCamera] = useState("user");
   const [isLightingValid, setIsLightingValid] = useState(true); // New state for lighting condition
 
-  const initializeCamera = (cameraFacing) => {
-    navigator.mediaDevices
-      .getUserMedia({
-        video: {
-          facingMode: cameraFacing,
-          width: 640,
-          height: 480,
-        },
-      })
-      .then((stream) => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play();
-        }
-      })
-      .catch((err) => {
-        console.error("Camera initialization failed:", err);
-        setMessage("Failed to access camera. Please check permissions.");
-      });
+  // Function to get the media stream with camera facing mode
+  const getStream = () => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: {
+            facingMode: currentCamera === "user" ? "user" : "environment",
+          },
+        });
+        console.log('Stream fetched with camera mode: ', currentCamera);
+        resolve(stream);
+      } catch (err) {
+        console.log('Error in fetching stream');
+        reject(err);
+      }
+    });
   };
+
+  // Initialize camera using the getStream function
+  const initializeCamera = async () => {
+    try {
+      const stream = await getStream();
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+    } catch (err) {
+      console.error("Camera initialization failed:", err);
+      setMessage("Failed to access camera. Please check permissions.");
+    }
+  };
+
+  const toggleCamera = () => {
+    setCurrentCamera((prev) => {
+      const newCamera = prev === "user" ? "environment" : "user";
+      // Stop the existing stream before switching
+      if (videoRef.current?.srcObject) {
+        videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
+      }
+      return newCamera;
+    });
+  };
+  
 
   useEffect(() => {
     let camera = null;
@@ -47,7 +72,7 @@ const SkeletonTracker = () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         if (results.poseLandmarks) {
-          drawSkeleton(results.poseLandmarks, ctx);
+          //drawSkeleton(results.poseLandmarks, ctx);
 
           const leftShoulder = results.poseLandmarks[11];
           const rightShoulder = results.poseLandmarks[12];
@@ -65,9 +90,9 @@ const SkeletonTracker = () => {
             const distance = Math.abs(hipY - shoulderY);
             const boxSize = distance * 2;
 
-            const boxLeft = midpointX - boxSize;
+            const boxLeft = midpointX - 2 * boxSize;
             const boxTop = midpointY - boxSize;
-            const boxWidth = boxSize * 2;
+            const boxWidth = boxSize * 4;
             const boxHeight = boxSize * 2.6;
 
             ctx.beginPath();
@@ -75,11 +100,6 @@ const SkeletonTracker = () => {
             ctx.strokeStyle = "red";
             ctx.lineWidth = 2;
             ctx.stroke();
-
-            // ctx.beginPath();
-            // ctx.arc(midpointX, midpointY, 5, 0, 2 * Math.PI);
-            // // ctx.fillStyle = "green";
-            // ctx.fill();
 
             const isBoxInFrame =
               boxLeft > 0 &&
@@ -92,9 +112,7 @@ const SkeletonTracker = () => {
 
             if (!isBoxInFrame) stopRecording();
 
-            setMessage(
-              
-            );
+            setMessage(""); // Clear message if body is in frame
           }
         } else {
           setIsBodyVisible(false);
@@ -104,66 +122,6 @@ const SkeletonTracker = () => {
         }
       }
     };
-    const drawSkeleton = (poseLandmarks, ctx) => {
-      // If you don't want any skeleton or points, simply return early
-      return;
-    };
-    
-
-    // const drawSkeleton = (poseLandmarks, ctx) => {
-    //   const canvasWidth = canvasRef.current.width;
-    //   const canvasHeight = canvasRef.current.height;
-
-    //   const drawLandmark = (x, y, label) => {
-    //     ctx.beginPath();
-    //     ctx.arc(x, y, 5, 0, 2 * Math.PI);
-    //     ctx.fillStyle = "green";
-    //     ctx.fill();
-
-    //     ctx.font = "12px Arial";
-    //     ctx.fillStyle = "white";
-    //     ctx.textAlign = "center";
-    //     ctx.fillText(label, x, y - 10);
-    //   };
-
-    //   const drawConnection = (start, end) => {
-    //     ctx.beginPath();
-    //     ctx.moveTo(start.x * canvasWidth, start.y * canvasHeight);
-    //     ctx.lineTo(end.x * canvasWidth, end.y * canvasHeight);
-    //     ctx.strokeStyle = "green";
-    //     ctx.lineWidth = 2;
-    //     ctx.stroke();
-    //   };
-
-    //   poseLandmarks.forEach((landmark, idx) => {
-    //     const x = landmark.x * canvasWidth;
-    //     const y = landmark.y * canvasHeight;
-    //     drawLandmark(x, y, idx);
-    //   });
-
-    //   const connections = [
-    //     [11, 12],
-    //     [11, 23],
-    //     [12, 24],
-    //     [23, 24],
-    //     [11, 13],
-    //     [13, 15],
-    //     [12, 14],
-    //     [14, 16],
-    //     [23, 25],
-    //     [25, 27],
-    //     [24, 26],
-    //     [26, 28],
-    //     [15, 21],
-    //     [16, 22],
-    //   ];
-
-    //   connections.forEach(([startIdx, endIdx]) => {
-    //     const start = poseLandmarks[startIdx];
-    //     const end = poseLandmarks[endIdx];
-    //     drawConnection(start, end);
-    //   });
-    // };
 
     const initializePose = () => {
       const pose = new Pose({
@@ -195,7 +153,7 @@ const SkeletonTracker = () => {
     };
 
     initializePose();
-    initializeCamera(currentCamera);
+    initializeCamera();
 
     return () => {
       if (camera) {
@@ -206,12 +164,6 @@ const SkeletonTracker = () => {
       }
     };
   }, [currentCamera]);
-
-  const toggleCamera = () => {
-    setCurrentCamera((prev) =>
-      prev === "user" ? "environment" : "user"
-    );
-  };
 
   const startRecording = () => {
     if (videoRef.current) {
@@ -226,11 +178,13 @@ const SkeletonTracker = () => {
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: "video/mp4" });
         chunksRef.current = [];
+        
+        // Trigger automatic download
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
         a.download = "recorded-video.mp4";
-        a.click();
+        a.click(); // Automatically triggers the download
       };
 
       mediaRecorder.start();
@@ -265,58 +219,53 @@ const SkeletonTracker = () => {
   }, []);
 
   return (
-    <div>
-      <div
-        style={{
-          position: "relative",
-          width: "640px",
-          height: "480px",
-        }}
-      >
-        <div
-  style={{
-    position: "relative",  // Parent container to hold the video and canvas
-    width: "640px",        // Set the width of the video and canvas container
-    height: "480px",       // Set the height of the video and canvas container
-  }}
->
-  <video
-    ref={videoRef}
-    style={{
-      ...videoStyles,
-      display: "block",
-      position: "absolute", // Ensure it is positioned absolutely within the parent
-      top: 0,
-      left: 0,
-      width: "100%",        // Make the video fill the entire container width
-      height: "100%",       // Make the video fill the entire container height
-    }}
-    autoPlay
-  />
-  <canvas
-    ref={canvasRef}
-    style={{
-      position: "absolute", // Position canvas exactly on top of the video
-      top: 0,               // Align top edge
-      left: 0,              // Align left edge
-      width: "100%",        // Make the canvas fill the entire width
-      height: "100%",       // Make the canvas fill the entire height
-      pointerEvents: "none",// Allow interactions to pass through the canvas
-    }}
-  />
-</div>
-
+    <div className={styles.container}>
+      <div className={styles.webcamContainer}>
+        <video
+          ref={videoRef}
+          style={{
+            ...videoStyles,
+            display: "block",
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+          }}
+          autoPlay
+        />
+        <canvas
+          ref={canvasRef}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            pointerEvents: "none",
+          }}
+        />
+        {!isBodyVisible && (
+          <div className={styles.overlayMessage}>Ensure one person is visible in the frame.</div>
+        )}
       </div>
-      <button onClick={toggleCamera}>Switch Camera</button>
-      <button
-  onClick={isRecording ? stopRecording : startRecording}
-  disabled={!isBodyVisible || !isLightingValid} // Disable if the body is not fully visible or lighting is not valid
->
-  {isRecording ? "Stop Recording" : "Start Recording"}
-</button>
-<div>{message}</div>
-{!isLightingValid && <div style={{ color: "red" }}>Lighting is not optimal</div>}
-</div>
+
+      <div className={styles.buttons}>
+        <button onClick={toggleCamera}>Switch Camera</button>
+        <button
+          onClick={isRecording ? stopRecording : startRecording}
+          disabled={!isBodyVisible || !isLightingValid}
+        >
+          {isRecording ? "Stop Recording" : "Start Recording"}
+        </button>
+      </div>
+
+      {!isLightingValid && (
+        <div style={{ color: "red", marginTop: "10px" }}>
+          Lighting condition is not optimal.
+        </div>
+      )}
+    </div>
   );
 };
 
