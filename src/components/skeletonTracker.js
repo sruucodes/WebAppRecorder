@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { Pose } from "@mediapipe/pose";
 import * as cam from "@mediapipe/camera_utils";
+import { getLuxValue } from './LightingCondition.js'; // Ensure this is the correct path
 
 const SkeletonTracker = () => {
   const videoRef = useRef(null);
@@ -11,7 +12,8 @@ const SkeletonTracker = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isBodyVisible, setIsBodyVisible] = useState(false);
   const [videoStyles, setVideoStyles] = useState({ filter: "blur(5px)" });
-  const [currentCamera, setCurrentCamera] = useState("user"); // "user" for front, "environment" for back
+  const [currentCamera, setCurrentCamera] = useState("user");
+  const [isLightingValid, setIsLightingValid] = useState(true); // New state for lighting condition
 
   const initializeCamera = (cameraFacing) => {
     navigator.mediaDevices
@@ -74,10 +76,10 @@ const SkeletonTracker = () => {
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            ctx.beginPath();
-            ctx.arc(midpointX, midpointY, 5, 0, 2 * Math.PI);
-            ctx.fillStyle = "green";
-            ctx.fill();
+            // ctx.beginPath();
+            // ctx.arc(midpointX, midpointY, 5, 0, 2 * Math.PI);
+            // // ctx.fillStyle = "green";
+            // ctx.fill();
 
             const isBoxInFrame =
               boxLeft > 0 &&
@@ -91,7 +93,7 @@ const SkeletonTracker = () => {
             if (!isBoxInFrame) stopRecording();
 
             setMessage(
-              `Body detected. Box Size: ${(boxSize * 2).toFixed(2)}px`
+              
             );
           }
         } else {
@@ -102,61 +104,66 @@ const SkeletonTracker = () => {
         }
       }
     };
-
     const drawSkeleton = (poseLandmarks, ctx) => {
-      const canvasWidth = canvasRef.current.width;
-      const canvasHeight = canvasRef.current.height;
-
-      const drawLandmark = (x, y, label) => {
-        ctx.beginPath();
-        ctx.arc(x, y, 5, 0, 2 * Math.PI);
-        ctx.fillStyle = "green";
-        ctx.fill();
-
-        ctx.font = "12px Arial";
-        ctx.fillStyle = "white";
-        ctx.textAlign = "center";
-        ctx.fillText(label, x, y - 10);
-      };
-
-      const drawConnection = (start, end) => {
-        ctx.beginPath();
-        ctx.moveTo(start.x * canvasWidth, start.y * canvasHeight);
-        ctx.lineTo(end.x * canvasWidth, end.y * canvasHeight);
-        ctx.strokeStyle = "green";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      };
-
-      poseLandmarks.forEach((landmark, idx) => {
-        const x = landmark.x * canvasWidth;
-        const y = landmark.y * canvasHeight;
-        drawLandmark(x, y, idx);
-      });
-
-      const connections = [
-        [11, 12],
-        [11, 23],
-        [12, 24],
-        [23, 24],
-        [11, 13],
-        [13, 15],
-        [12, 14],
-        [14, 16],
-        [23, 25],
-        [25, 27],
-        [24, 26],
-        [26, 28],
-        [15, 21],
-        [16, 22],
-      ];
-
-      connections.forEach(([startIdx, endIdx]) => {
-        const start = poseLandmarks[startIdx];
-        const end = poseLandmarks[endIdx];
-        drawConnection(start, end);
-      });
+      // If you don't want any skeleton or points, simply return early
+      return;
     };
+    
+
+    // const drawSkeleton = (poseLandmarks, ctx) => {
+    //   const canvasWidth = canvasRef.current.width;
+    //   const canvasHeight = canvasRef.current.height;
+
+    //   const drawLandmark = (x, y, label) => {
+    //     ctx.beginPath();
+    //     ctx.arc(x, y, 5, 0, 2 * Math.PI);
+    //     ctx.fillStyle = "green";
+    //     ctx.fill();
+
+    //     ctx.font = "12px Arial";
+    //     ctx.fillStyle = "white";
+    //     ctx.textAlign = "center";
+    //     ctx.fillText(label, x, y - 10);
+    //   };
+
+    //   const drawConnection = (start, end) => {
+    //     ctx.beginPath();
+    //     ctx.moveTo(start.x * canvasWidth, start.y * canvasHeight);
+    //     ctx.lineTo(end.x * canvasWidth, end.y * canvasHeight);
+    //     ctx.strokeStyle = "green";
+    //     ctx.lineWidth = 2;
+    //     ctx.stroke();
+    //   };
+
+    //   poseLandmarks.forEach((landmark, idx) => {
+    //     const x = landmark.x * canvasWidth;
+    //     const y = landmark.y * canvasHeight;
+    //     drawLandmark(x, y, idx);
+    //   });
+
+    //   const connections = [
+    //     [11, 12],
+    //     [11, 23],
+    //     [12, 24],
+    //     [23, 24],
+    //     [11, 13],
+    //     [13, 15],
+    //     [12, 14],
+    //     [14, 16],
+    //     [23, 25],
+    //     [25, 27],
+    //     [24, 26],
+    //     [26, 28],
+    //     [15, 21],
+    //     [16, 22],
+    //   ];
+
+    //   connections.forEach(([startIdx, endIdx]) => {
+    //     const start = poseLandmarks[startIdx];
+    //     const end = poseLandmarks[endIdx];
+    //     drawConnection(start, end);
+    //   });
+    // };
 
     const initializePose = () => {
       const pose = new Pose({
@@ -238,6 +245,25 @@ const SkeletonTracker = () => {
     }
   };
 
+  const checkLightingCondition = () => {
+    const luxValue = getLuxValue(); // Replace with actual lux calculation logic
+    if (luxValue < 300 || luxValue > 700) {
+      setIsLightingValid(false);
+      stopRecording(); // Stop recording if lighting is not valid
+    } else {
+      setIsLightingValid(true);
+    }
+  };
+
+  // Call checkLightingCondition periodically to check lux value
+  useEffect(() => {
+    const interval = setInterval(() => {
+      checkLightingCondition();
+    }, 2000); // Check every 2 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div>
       <div
@@ -247,50 +273,50 @@ const SkeletonTracker = () => {
           height: "480px",
         }}
       >
-        <video
-          ref={videoRef}
-          style={{
-            ...videoStyles,
-            display: "block",
-            width: "100%",
-            height: "100%",
-          }}
-          autoPlay
-          muted
-        />
-        <canvas
-          ref={canvasRef}
-          width="640"
-          height="480"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            pointerEvents: "none",
-          }}
-        />
+        <div
+  style={{
+    position: "relative",  // Parent container to hold the video and canvas
+    width: "640px",        // Set the width of the video and canvas container
+    height: "480px",       // Set the height of the video and canvas container
+  }}
+>
+  <video
+    ref={videoRef}
+    style={{
+      ...videoStyles,
+      display: "block",
+      position: "absolute", // Ensure it is positioned absolutely within the parent
+      top: 0,
+      left: 0,
+      width: "100%",        // Make the video fill the entire container width
+      height: "100%",       // Make the video fill the entire container height
+    }}
+    autoPlay
+  />
+  <canvas
+    ref={canvasRef}
+    style={{
+      position: "absolute", // Position canvas exactly on top of the video
+      top: 0,               // Align top edge
+      left: 0,              // Align left edge
+      width: "100%",        // Make the canvas fill the entire width
+      height: "100%",       // Make the canvas fill the entire height
+      pointerEvents: "none",// Allow interactions to pass through the canvas
+    }}
+  />
+</div>
+
       </div>
-
-      <div style={{ color: "green" }}>{message}</div>
-
+      <button onClick={toggleCamera}>Switch Camera</button>
       <button
-        onClick={startRecording}
-        disabled={!isBodyVisible || isRecording}
-        style={{ marginRight: "10px" }}
-      >
-        Start Recording
-      </button>
-      <button
-        onClick={stopRecording}
-        disabled={!isRecording}
-        style={{ marginRight: "10px" }}
-      >
-        Stop Recording
-      </button>
-      <button onClick={toggleCamera}>
-        Switch to {currentCamera === "user" ? "Back" : "Front"} Camera
-      </button>
-    </div>
+  onClick={isRecording ? stopRecording : startRecording}
+  disabled={!isBodyVisible || !isLightingValid} // Disable if the body is not fully visible or lighting is not valid
+>
+  {isRecording ? "Stop Recording" : "Start Recording"}
+</button>
+<div>{message}</div>
+{!isLightingValid && <div style={{ color: "red" }}>Lighting is not optimal</div>}
+</div>
   );
 };
 

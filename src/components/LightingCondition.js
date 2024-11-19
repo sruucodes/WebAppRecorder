@@ -53,7 +53,7 @@ function LightingCondition({ videoRef, onLightingChange }) {
   return null; // No need to return anything in the component since the value is passed to parent
 }
 
-// Named export for getLuxValue if you need to use it externally
+
 export const getLuxValue = (lux) => lux;
 
 export default LightingCondition;
