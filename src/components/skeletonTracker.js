@@ -20,20 +20,38 @@ const SkeletonTracker = () => {
   const [selectedCameraId, setSelectedCameraId] = useState(null);
 
   
-  const getCamAndMics = async () => {
+  const getCameras = async () => {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = devices.filter((device) => device.kind === "videoinput");
-      setCameraList(videoDevices);
-
-      // Auto-select the first camera
-      if (videoDevices.length > 0) {
-        setSelectedCameraId(videoDevices[0].deviceId);
-      }
-    } catch (err) {
-      console.error("Error enumerating devices:", err);
+  
+      let frontCamera = null;
+      let backCamera = null;
+  
+      videoDevices.forEach((device) => {
+        if (device.label.toLowerCase().includes("front")) {
+          frontCamera = device.deviceId;
+        } else if (device.label.toLowerCase().includes("back")) {
+          backCamera = device.deviceId;
+        }
+      });
+  
+      console.log("Front Camera ID:", frontCamera);
+      console.log("Back Camera ID:", backCamera);
+  
+      return { frontCamera, backCamera };
+    } catch (error) {
+      console.error("Error getting cameras:", error);
+      return null;
     }
   };
+  
+  // Example usage
+  getCameras().then(({ frontCamera, backCamera }) => {
+    // You can now use these IDs to start the desired camera
+    console.log("Use these IDs for camera switching:", { frontCamera, backCamera });
+  });
+  
 
   // Function to start the video stream with the selected camera
   // Reference to the camera stream
@@ -76,7 +94,7 @@ const startCamera = async (deviceId) => {
 
   // Initialize the camera list and start the default camera
   useEffect(() => {
-    getCamAndMics();
+    getCameras();
   }, []);
 
   // Start the camera whenever the selectedCameraId changes
