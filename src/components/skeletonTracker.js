@@ -13,63 +13,78 @@ const SkeletonTracker = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isBodyVisible, setIsBodyVisible] = useState(false);
   const [videoStyles, setVideoStyles] = useState({ filter: "blur(5px)" });
-  const [currentCamera, setCurrentCamera] = useState(null);
+  //const [currentCamera, setCurrentCamera] = useState(null);
   const [isLightingValid, setIsLightingValid] = useState(true);
   const [cameras, setCameras] = useState([]);
+  const [cameraList, setCameraList] = useState([]);
+  const [selectedCameraId, setSelectedCameraId] = useState(null);
 
-  // Fetch available cameras
-  const getCamerasAndMics = () => {
-    navigator.mediaDevices.enumerateDevices()
-      .then((devices) => {
-        const cameraList = devices.filter((device) => device.kind === "videoinput");
-        setCameras(cameraList);
-        if (cameraList.length > 0) {
-          setCurrentCamera(cameraList[0].deviceId);
-        }
-      })
-      .catch((err) => console.log("Error enumerating devices:", err));
-  };
-
-  // Initialize the camera with the selected deviceId
-  const initializeCamera = async (cameraId) => {
+  
+  const getCamAndMics = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: { deviceId: { exact: cameraId } },
-      });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter((device) => device.kind === "videoinput");
+      setCameraList(videoDevices);
+
+      // Auto-select the first camera
+      if (videoDevices.length > 0) {
+        setSelectedCameraId(videoDevices[0].deviceId);
       }
     } catch (err) {
-      console.error("Camera initialization failed:", err);
-      setMessage("Failed to access camera. Please check permissions.");
+      console.error("Error enumerating devices:", err);
     }
   };
 
-  // Toggle between cameras
-  const toggleCamera = () => {
-    if (currentCamera && cameras.length > 1) {
-      const newCamera = currentCamera === cameras[0].deviceId ? cameras[1].deviceId : cameras[0].deviceId;
-      setCurrentCamera(newCamera);
+  // Function to start the video stream with the selected camera
+  // Reference to the camera stream
+const cameraStreamRef = useRef(null);
+
+const startCamera = async (deviceId) => {
+  try {
+    // Stop any existing stream
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach((track) => track.stop());
     }
-  };
 
-  useEffect(() => {
-    getCamerasAndMics();
-
-    return () => {
-      if (videoRef.current?.srcObject) {
-        videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
-      }
+    // Configure video options with the selected deviceId
+    const videoOptions = {
+      deviceId: deviceId ? { exact: deviceId } : undefined,
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+      frameRate: { ideal: 30 },
     };
+
+    // Get a new media stream
+    const stream = await navigator.mediaDevices.getUserMedia({ video: videoOptions });
+    cameraStreamRef.current = stream; // Store the stream reference
+
+    // Assign the stream to the video element
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+      videoRef.current.play();
+    }
+  } catch (err) {
+    console.error("Error starting camera:", err);
+  }
+};
+  // Handle camera selection change
+  const handleCameraChange = (e) => {
+    const newCameraId = e.target.value;
+    setSelectedCameraId(newCameraId);
+    startCamera(newCameraId);
+  };
+
+  // Initialize the camera list and start the default camera
+  useEffect(() => {
+    getCamAndMics();
   }, []);
 
+  // Start the camera whenever the selectedCameraId changes
   useEffect(() => {
-    if (currentCamera) {
-      initializeCamera(currentCamera);
+    if (selectedCameraId) {
+      startCamera(selectedCameraId);
     }
-  }, [currentCamera]);
+  }, [selectedCameraId]);
 
   const onResults = (results) => {
     if (canvasRef.current && results.poseLandmarks) {
@@ -235,7 +250,20 @@ const SkeletonTracker = () => {
       </div>
 
       <div className={styles.buttons}>
-        <button onClick={toggleCamera}>Switch Camera</button>
+      <div className={styles.controls}>
+        <label htmlFor="cameraPicker">Choose Camera:</label>
+        <select
+          id="cameraPicker"
+          value={selectedCameraId || ""}
+          onChange={handleCameraChange}
+        >
+          {cameraList.map((camera) => (
+            <option key={camera.deviceId} value={camera.deviceId}>
+              {camera.label || `Camera ${camera.deviceId}`}
+            </option>
+          ))}
+        </select>
+      </div>
         <button
           onClick={isRecording ? stopRecording : startRecording}
           disabled={!isBodyVisible || !isLightingValid}
