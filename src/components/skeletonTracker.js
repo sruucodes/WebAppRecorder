@@ -19,39 +19,19 @@ const SkeletonTracker = () => {
   const [cameraList, setCameraList] = useState([]);
   const [selectedCameraId, setSelectedCameraId] = useState(null);
 
-  
-  const getCameras = async () => {
+  const getCamAndMics = async () => {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = devices.filter((device) => device.kind === "videoinput");
-  
-      let frontCamera = null;
-      let backCamera = null;
-  
-      videoDevices.forEach((device) => {
-        if (device.label.toLowerCase().includes("front")) {
-          frontCamera = device.deviceId;
-        } else if (device.label.toLowerCase().includes("back")) {
-          backCamera = device.deviceId;
-        }
-      });
-  
-      console.log("Front Camera ID:", frontCamera);
-      console.log("Back Camera ID:", backCamera);
-  
-      return { frontCamera, backCamera };
-    } catch (error) {
-      console.error("Error getting cameras:", error);
-      return null;
+      setCameraList(videoDevices);
+      // Auto-select the first camera
+      if (videoDevices.length > 0) {
+        setSelectedCameraId(videoDevices[0].deviceId);
+      }
+    } catch (err) {
+      console.error("Error enumerating devices:", err);
     }
   };
-  
-  // Example usage
-  getCameras().then(({ frontCamera, backCamera }) => {
-    // You can now use these IDs to start the desired camera
-    console.log("Use these IDs for camera switching:", { frontCamera, backCamera });
-  });
-  
 
   // Function to start the video stream with the selected camera
   // Reference to the camera stream
@@ -94,7 +74,7 @@ const startCamera = async (deviceId) => {
 
   // Initialize the camera list and start the default camera
   useEffect(() => {
-    getCameras();
+   getCamAndMics();
   }, []);
 
   // Start the camera whenever the selectedCameraId changes
@@ -109,48 +89,100 @@ const startCamera = async (deviceId) => {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext("2d");
       const { width, height } = canvas;
-
+  
+      // Clear the canvas
       ctx.clearRect(0, 0, width, height);
-
+  
+      // Scale landmarks to canvas size
+      const landmarks = results.poseLandmarks.map((landmark) => ({
+        x: landmark.x * width,
+        y: landmark.y * height,
+        z: landmark.z,
+        visibility: landmark.visibility,
+      }));
+  
+      // Define the connections for the skeleton
+      const connections = [
+        [11, 12], // Left shoulder to right shoulder
+        [11, 13], // Left shoulder to left elbow
+        [13, 15], // Left elbow to left wrist
+        [12, 14], // Right shoulder to right elbow
+        [14, 16], // Right elbow to right wrist
+        [11, 23], // Left shoulder to left hip
+        [12, 24], // Right shoulder to right hip
+        [23, 24], // Left hip to right hip
+        [23, 25], // Left hip to left knee
+        [25, 27], // Left knee to left ankle
+        [24, 26], // Right hip to right knee
+        [26, 28], // Right knee to right ankle
+      ];
+  
+      // Draw skeleton
+      ctx.strokeStyle = "cyan";
+      ctx.lineWidth = 3;
+  
+      connections.forEach(([start, end]) => {
+        const startPoint = landmarks[start];
+        const endPoint = landmarks[end];
+  
+        if (startPoint.visibility > 0.5 && endPoint.visibility > 0.5) {
+          ctx.beginPath();
+          ctx.moveTo(startPoint.x, startPoint.y);
+          ctx.lineTo(endPoint.x, endPoint.y);
+          ctx.stroke();
+        }
+      });
+  
+      // Draw landmarks
+      ctx.fillStyle = "red";
+      landmarks.forEach((landmark) => {
+        if (landmark.visibility > 0.5) {
+          ctx.beginPath();
+          ctx.arc(landmark.x, landmark.y, 5, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+      });
+  
+      // Additional body visibility logic
       const leftShoulder = results.poseLandmarks[11];
       const rightShoulder = results.poseLandmarks[12];
       const leftHip = results.poseLandmarks[23];
-
+  
       if (leftShoulder && rightShoulder && leftHip) {
         const midpointX =
           ((leftShoulder.x + rightShoulder.x) / 2) * canvas.width;
         const midpointY =
           ((leftShoulder.y + rightShoulder.y) / 2) * canvas.height;
-
+  
         const shoulderY = leftShoulder.y * canvas.height;
         const hipY = leftHip.y * canvas.height;
-
+  
         const distance = Math.abs(hipY - shoulderY);
         const boxSize = distance * 2;
-
+  
         const boxLeft = midpointX - boxSize;
         const boxTop = midpointY - boxSize;
         const boxWidth = boxSize * 2;
         const boxHeight = boxSize * 2.6;
-
+  
         ctx.beginPath();
         ctx.rect(boxLeft, boxTop, boxWidth, boxHeight);
         ctx.strokeStyle = "red";
         ctx.lineWidth = 2;
         ctx.stroke();
-
+  
         const isBoxInFrame =
           boxLeft >= 0 &&
           boxTop >= 0 &&
           boxLeft + boxWidth <= width &&
           boxTop + boxHeight <= height;
-
+  
         setIsBodyVisible(isBoxInFrame);
         setVideoStyles({ filter: isBoxInFrame ? "none" : "blur(5px)" });
-
+  
         if (!isBoxInFrame) stopRecording();
-
-        setMessage(""); // Clear message if body is detected in the frame
+  
+        setMessage("");
       }
     } else {
       setIsBodyVisible(false);
@@ -159,6 +191,7 @@ const startCamera = async (deviceId) => {
       stopRecording();
     }
   };
+  
 
   const initializePose = () => {
     const pose = new Pose({
@@ -245,6 +278,7 @@ const startCamera = async (deviceId) => {
           style={{
             ...videoStyles,
             display: "block",
+            visibility: "hidden",
             position: "absolute",
             top: 0,
             left: 0,
