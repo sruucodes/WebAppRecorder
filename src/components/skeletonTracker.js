@@ -101,47 +101,47 @@ const startCamera = async (deviceId) => {
         visibility: landmark.visibility,
       }));
   
-      // Define the connections for the skeleton
-      const connections = [
-        [11, 12], // Left shoulder to right shoulder
-        [11, 13], // Left shoulder to left elbow
-        [13, 15], // Left elbow to left wrist
-        [12, 14], // Right shoulder to right elbow
-        [14, 16], // Right elbow to right wrist
-        [11, 23], // Left shoulder to left hip
-        [12, 24], // Right shoulder to right hip
-        [23, 24], // Left hip to right hip
-        [23, 25], // Left hip to left knee
-        [25, 27], // Left knee to left ankle
-        [24, 26], // Right hip to right knee
-        [26, 28], // Right knee to right ankle
-      ];
+      // // Define the connections for the skeleton
+      // const connections = [
+      //   [11, 12], // Left shoulder to right shoulder
+      //   [11, 13], // Left shoulder to left elbow
+      //   [13, 15], // Left elbow to left wrist
+      //   [12, 14], // Right shoulder to right elbow
+      //   [14, 16], // Right elbow to right wrist
+      //   [11, 23], // Left shoulder to left hip
+      //   [12, 24], // Right shoulder to right hip
+      //   [23, 24], // Left hip to right hip
+      //   [23, 25], // Left hip to left knee
+      //   [25, 27], // Left knee to left ankle
+      //   [24, 26], // Right hip to right knee
+      //   [26, 28], // Right knee to right ankle
+      // ];
   
-      // Draw skeleton
-      ctx.strokeStyle = "cyan";
-      ctx.lineWidth = 3;
+      // // Draw skeleton
+      // ctx.strokeStyle = "cyan";
+      // ctx.lineWidth = 3;
   
-      connections.forEach(([start, end]) => {
-        const startPoint = landmarks[start];
-        const endPoint = landmarks[end];
+      // connections.forEach(([start, end]) => {
+      //   const startPoint = landmarks[start];
+      //   const endPoint = landmarks[end];
   
-        if (startPoint.visibility > 0.5 && endPoint.visibility > 0.5) {
-          ctx.beginPath();
-          ctx.moveTo(startPoint.x, startPoint.y);
-          ctx.lineTo(endPoint.x, endPoint.y);
-          ctx.stroke();
-        }
-      });
+      //   if (startPoint.visibility > 0.5 && endPoint.visibility > 0.5) {
+      //     ctx.beginPath();
+      //     ctx.moveTo(startPoint.x, startPoint.y);
+      //     ctx.lineTo(endPoint.x, endPoint.y);
+      //     ctx.stroke();
+      //   }
+      // });
   
-      // Draw landmarks
-      ctx.fillStyle = "red";
-      landmarks.forEach((landmark) => {
-        if (landmark.visibility > 0.5) {
-          ctx.beginPath();
-          ctx.arc(landmark.x, landmark.y, 5, 0, 2 * Math.PI);
-          ctx.fill();
-        }
-      });
+      // // Draw landmarks
+      // ctx.fillStyle = "red";
+      // landmarks.forEach((landmark) => {
+      //   if (landmark.visibility > 0.5) {
+      //     ctx.beginPath();
+      //     ctx.arc(landmark.x, landmark.y, 5, 0, 2 * Math.PI);
+      //     ctx.fill();
+      //   }
+      // });
   
       // Additional body visibility logic
       const leftShoulder = results.poseLandmarks[11];
@@ -278,7 +278,6 @@ const startCamera = async (deviceId) => {
           style={{
             ...videoStyles,
             display: "block",
-            visibility: "hidden",
             position: "absolute",
             top: 0,
             left: 0,
